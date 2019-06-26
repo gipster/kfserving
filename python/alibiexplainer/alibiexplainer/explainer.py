@@ -8,6 +8,7 @@ import requests
 import json
 import logging
 from alibiexplainer.anchor_tabular import AnchorTabular
+from alibiexplainer.anchor_images import AnchorImages
 from kfserving.server import Protocol
 from kfserving.protocols.util import NumpyEncoder
 from alibiexplainer.explainer_method import ExplainerMethodImpl
@@ -17,6 +18,7 @@ logging.basicConfig(level=kfserving.server.KFSERVER_LOGLEVEL)
 
 class ExplainerMethod(Enum):
     anchor_tabular = "anchor_tabular"
+    anchor_images = "anchor_images"
 
 
 class AlibiExplainer(kfserving.KFModel):
@@ -33,6 +35,9 @@ class AlibiExplainer(kfserving.KFModel):
         self.training_data_url = training_data_url
         if self.method is ExplainerMethod.anchor_tabular:
             self.explainer: ExplainerMethodImpl = AnchorTabular(self._predict_fn)
+            self.explainer.validate(self.training_data_url)
+        elif self.method is ExplainerMethod.anchor_images:
+            self.explainer: ExplainerMethodImpl = AnchorImages(self._predict_fn)
             self.explainer.validate(self.training_data_url)
         else:
             raise NotImplementedError
