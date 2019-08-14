@@ -1,6 +1,6 @@
 import kfserving
 from enum import Enum
-from typing import List, Any
+from typing import List, Any, Dict, Mapping, Optional
 import numpy as np
 import kfserving.protocols.seldon_http as seldon
 from kfserving.protocols.seldon_http import SeldonRequestHandler
@@ -8,18 +8,18 @@ import requests
 import json
 import logging
 from alibiexplainer.anchor_tabular import AnchorTabular
-from alibiexplainer.anchor_images import AnchorImages
 from kfserving.server import Protocol
 from kfserving.protocols.util import NumpyEncoder
-from alibiexplainer.explainer_method import ExplainerMethodImpl
+
 
 logging.basicConfig(level=kfserving.server.KFSERVER_LOGLEVEL)
 
 
 class ExplainerMethod(Enum):
     anchor_tabular = "anchor_tabular"
-    anchor_images = "anchor_images"
 
+    def __str__(self):
+        return self.value
 
 class AlibiExplainer(kfserving.KFModel):
     def __init__(self,
@@ -27,26 +27,20 @@ class AlibiExplainer(kfserving.KFModel):
                  predict_url: str,
                  protocol: Protocol,
                  method: ExplainerMethod,
-                 training_data_url: str = None):
+                 config: Mapping,
+                 explainer: object = None):
         super().__init__(name)
         self.predict_url = predict_url
         self.protocol = protocol
         self.method = method
-        self.training_data_url = training_data_url
+
         if self.method is ExplainerMethod.anchor_tabular:
-            self.explainer: ExplainerMethodImpl = AnchorTabular(self._predict_fn)
-            self.explainer.validate(self.training_data_url)
-        elif self.method is ExplainerMethod.anchor_images:
-            self.explainer: ExplainerMethodImpl = AnchorImages(self._predict_fn)
-            self.explainer.validate(self.training_data_url)
+            self.wrapper = AnchorTabular(self._predict_fn,explainer,**config)
         else:
             raise NotImplementedError
 
     def load(self):
-        if not self.ready:
-            logging.info("Loading explainer")
-            self.explainer.prepare(self.training_data_url)
-            self.ready = True
+        pass
 
     def _predict_fn(self, arr: np.ndarray) -> np.ndarray:
         if self.protocol == Protocol.seldon_http:
@@ -63,7 +57,7 @@ class AlibiExplainer(kfserving.KFModel):
 
     def explain(self, inputs: List) -> Any:
         if self.method is ExplainerMethod.anchor_tabular:
-            explaination = self.explainer.explain(inputs)
+            explaination = self.wrapper.explain(inputs)
             return json.loads(json.dumps(explaination, cls=NumpyEncoder))
         else:
             raise NotImplementedError
