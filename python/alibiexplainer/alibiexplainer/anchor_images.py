@@ -15,28 +15,35 @@ class AnchorImages(ExplainerWrapper):
     def __init__(self, predict_fn: Callable, explainer=Optional[alibi.explainers.AnchorImage], **kwargs):
         self.predict_fn = predict_fn
         self.anchors_images: Optional[alibi.explainers.AnchorImage] = explainer
-        self.prepare(**kwargs)
+        if self.anchors_images is None:
+            self.prepare(**kwargs)
+        else:
+            pass
+            # self.prepare(**kwargs)
+            # self.input_shape = self.anchors_images.input_shape
 
     def prepare(self, training_data_url=None, input_shape_url=None, **kwargs):
+        print(training_data_url)
+        print(input_shape_url)
         if not training_data_url is None:
             logging.info("Loading training file %s" % training_data_url)
             training_data_file = kfserving.Storage.download(training_data_url)
             training_data = joblib.load(training_data_file)
         else:
-            raise Exception("Anchor_images requires training data")
+            pass
+            # raise Exception("Anchor_images requires training data")
 
         if not input_shape_url is None:
             logging.info("Loading input shape file %s" % input_shape_url)
             input_shape_file = kfserving.Storage.download(input_shape_url)
-            input_shape = joblib.load(input_shape_file)
+            self.input_shape = joblib.load(input_shape_file)
         else:
-            raise Exception("Anchor_images requires feature names")
+            pass
+            # raise Exception("Anchor_images requires input shape")
 
         logging.info("Creating AnchorImages")
-        self.anchors_tabular = alibi.explainers.AnchorImage(predict_fn=self.predict_fn,
-                                                            image_shape=input_shape)
-        logging.info("Fitting AnchorImage")
-        self.anchors_images.fit(training_data)
+        self.anchors_images = alibi.explainers.AnchorImage(predict_fn=self.predict_fn,
+                                                            image_shape=self.input_shape)
 
     def explain(self, inputs: List) -> Dict:
         if not self.anchors_images is None:
