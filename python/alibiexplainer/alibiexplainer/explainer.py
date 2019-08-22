@@ -61,7 +61,7 @@ class AlibiExplainer(kfserving.KFModel):
             raise NotImplementedError
 
     def explain(self, inputs: List) -> Any:
-        if self.method is ExplainerMethod.anchor_tabular:
+        if self.method is ExplainerMethod.anchor_tabular or self.method is ExplainerMethod.anchor_images:
             explaination = self.wrapper.explain(inputs)
             return json.loads(json.dumps(explaination, cls=NumpyEncoder))
         else:
