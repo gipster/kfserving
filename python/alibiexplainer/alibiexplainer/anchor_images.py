@@ -47,7 +47,7 @@ class AnchorImages(ExplainerWrapper):
             arr = np.array(inputs)
             # set anchor_images predict function so it always returns predicted class
             # See anchor_images.__init__
-            if np.argmax(self.predict_fn(arr).shape) == 0:
+            if np.argmax(self.predict_fn(np.expand_dims(arr, axis=0)).shape) == 0:
                 self.anchors_image.predict_fn = self.predict_fn
             else:
                 self.anchors_image.predict_fn = lambda x: np.argmax(self.predict_fn(x), axis=1)
