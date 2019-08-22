@@ -17,11 +17,8 @@ import joblib
 import numpy as np
 import os
 from typing import List
-# from keras.models import load_model
 
 JOBLIB_FILE = "model.joblib"
-# JOBLIB_FILE = "model.h5" # hack to run anchor images on fashion mnist keras model
-
 
 class SKLearnModel(kfserving.KFModel): #pylint:disable=c-extension-no-member
     def __init__(self, name: str, model_dir: str):
@@ -33,15 +30,14 @@ class SKLearnModel(kfserving.KFModel): #pylint:disable=c-extension-no-member
     def load(self):
         model_file = os.path.join(kfserving.Storage.download(self.model_dir), JOBLIB_FILE) #pylint:disable=c-extension-no-member
         self._joblib = joblib.load(model_file)  # pylint:disable=attribute-defined-outside-init
-        # self._joblib = load_model(model_file)  # pylint:disable=attribute-defined-outside-init # hack to run anchor images on fashion mnist keras model
         self.ready = True
 
     def predict(self, body: List) -> List:
         try:
             inputs = np.array(body)
-            # inputs = inputs.reshape((-1, 28, 28, 1))  # hack to run anchor images on fashion mnist keras model
         except Exception as e:
-            raise Exception("Failed to initialize NumPy array from inputs: %s, %s" % (e, inputs))
+            raise Exception(
+                "Failed to initialize NumPy array from inputs: %s, %s" % (e, inputs))
         try:
             result = self._joblib.predict(inputs).tolist()
             return result
