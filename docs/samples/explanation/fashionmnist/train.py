@@ -8,7 +8,6 @@ import joblib
 import dill
 from keras.wrappers.scikit_learn import KerasClassifier
 
-
 # load data
 (x_train, y_train), (x_test, y_test) = keras.datasets.fashion_mnist.load_data()
 print('x_train shape:', x_train.shape, 'y_train shape:', y_train.shape)
@@ -26,6 +25,7 @@ print('y_train shape:', y_train.shape, 'y_test shape:', y_test.shape)
 
 
 def superpixel(image, size=(4, 7)):
+    import numpy as np
     segments = np.zeros([image.shape[0], image.shape[1]])
     row_idx, col_idx = np.where(segments == 0)
     for i, j in zip(row_idx, col_idx):
@@ -54,32 +54,25 @@ def model():
 
     return cnn
 
+
 cnn = KerasClassifier(build_fn=model, verbose=1)
-# cnn = model()
-# cnn.summary()
 
 print('Training cnn ...')
-cnn.fit(x_train, y_train, batch_size=64, epochs=1)
+cnn.fit(x_train, y_train, batch_size=64, epochs=3)
 print('Training done!')
-# score = cnn.evaluate(x_test, y_test, verbose=0)
-# print('Test accuracy: ', score[1])
 
 print("Creating an explainer")
 predict_fn = lambda x: cnn.predict(x)
 image_shape = x_train[0].shape
 explainer = alibi.explainers.AnchorImage(predict_fn, image_shape, segmentation_fn=superpixel)
-
-# explainer.fit(x_train)
+explainer.image_shape = image_shape
 explainer.predict_fn = None  # Clear explainer predict_fn as its a lambda and will be reset when loaded
+print('Saving explainer')
 with open("explainer.dill", 'wb') as f:
     dill.dump(explainer, f)
 
 print("Saving individual files")
 # Dump files - for testing creating an AnchorExplainer from components
-# cnn.save('model.h5')
 joblib.dump(cnn, "model.joblib")
 joblib.dump(x_train, "train.joblib")
 joblib.dump(image_shape, "input_shape.joblib")
-
-
-
